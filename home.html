@@ -1,107 +1,20 @@
 <!DOCTYPE html>
-<html lang="ar" dir="rtl">
+<html lang="ar">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>KHALIL | الدردشة</title>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <title>Home - Khalil App</title>
     <style>
-        * { box-sizing: border-box; margin: 0; padding: 0; }
-        body { 
-            background: #050505; 
-            color: white; 
-            font-family: 'Segoe UI', sans-serif; 
-            padding-bottom: 80px; 
-        }
-
-        header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 20px;
-            position: sticky;
-            top: 0;
-            background: rgba(5, 5, 5, 0.9);
-            backdrop-filter: blur(10px);
-            z-index: 100;
-            border-bottom: 1px solid #1a1a1a;
-        }
-        .logo { color: #a855f7; font-weight: bold; font-size: 24px; letter-spacing: 2px; }
-        .search-top-btn { color: #94a3b8; font-size: 20px; cursor: pointer; }
-
-        .user-bar {
-            display: flex;
-            align-items: center;
-            padding: 15px 20px;
-            background: #0a0a0a;
-            margin-bottom: 10px;
-        }
-        .user-bar img { width: 45px; height: 45px; border-radius: 50%; border: 2px solid #a855f7; object-fit: cover; }
-        .user-bar span { margin-right: 12px; font-weight: 500; font-size: 18px; }
-
-        .chat-list { padding: 10px; }
-        .chat-item {
-            display: flex;
-            align-items: center;
-            padding: 15px;
-            background: rgba(255,255,255,0.03);
-            border-radius: 18px;
-            margin-bottom: 12px;
-            border: 1px solid rgba(255,255,255,0.05);
-            transition: 0.3s;
-            cursor: pointer;
-        }
-        .chat-item:active { transform: scale(0.98); background: rgba(168, 85, 247, 0.1); }
-        .chat-img { width: 55px; height: 55px; border-radius: 50%; object-fit: cover; margin-left: 15px; }
-        .chat-info { flex: 1; }
-        .chat-name { font-weight: bold; margin-bottom: 4px; color: #f1f5f9; }
-        .chat-msg { font-size: 13px; color: #94a3b8; }
-
-        .nav-bar {
-            position: fixed;
-            bottom: 0;
-            width: 100%;
-            background: #0a0a0a;
-            display: flex;
-            justify-content: space-around;
-            padding: 15px 0;
-            border-top: 1px solid #1a1a1a;
-        }
-        .nav-btn { background: none; border: none; color: #94a3b8; display: flex; flex-direction: column; align-items: center; gap: 5px; cursor: pointer; }
-        .nav-btn.active { color: #a855f7; }
-        .nav-btn i { font-size: 20px; }
-        .nav-btn span { font-size: 11px; }
+        body { font-family: Arial, sans-serif; background: #000; color: #fff; text-align: center; padding: 50px; }
+        .btn { background: #9c27b0; color: white; padding: 15px 30px; text-decoration: none; border-radius: 25px; font-size: 20px; display: inline-block; margin-top: 20px; }
     </style>
 </head>
 <body>
-
-    <header>
-        <div class="logo">KHALIL</div>
-        <div class="search-top-btn" onclick="window.location.assign('search.html')">
-            <i class="fas fa-search"></i>
-        </div>
-    </header>
-
-    <div class="user-bar">
-        <img id="userImg" src="https://via.placeholder.com/150" alt="">
-        <span id="userName">جاري التحميل...</span>
-    </div>
-
-    <div class="chat-list" id="chatList">
-        </div>
-
-    <div class="nav-bar">
-        <button class="nav-btn active">
-            <i class="fas fa-comment-dots"></i>
-            <span>المحادثات</span>
-        </button>
-        <button class="nav-btn" onclick="window.location.assign('search.html')">
-            <i class="fas fa-user-plus"></i>
-            <span>إضافة</span>
-        </button>
-    </div>
-
-    <script type="module">
+    <h1>أهلاً بك في تطبيق خليل</h1>
+    <p>اضغط تحت عشان تدخل الشات</p>
+    <a href="chat.html" class="btn">دخول الدردشة</a>
+</body>
+</html>
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
         import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
         import { getFirestore, doc, getDoc, collection, query, where, onSnapshot } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
