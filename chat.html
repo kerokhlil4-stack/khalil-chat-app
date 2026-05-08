@@ -8,14 +8,14 @@
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
     <style>
-        body { font-family: sans-serif; background: #f0f2f5; margin: 0; display: flex; flex-direction: column; height: 100vh; }
+        body { font-family: sans-serif; background: #000; margin: 0; display: flex; flex-direction: column; height: 100vh; color: white; }
         #chat-container { flex: 1; overflow-y: auto; padding: 20px; display: flex; flex-direction: column; gap: 10px; }
         .message { padding: 10px 15px; border-radius: 18px; max-width: 70%; word-wrap: break-word; }
-        .sent { align-self: flex-end; background: #0084ff; color: white; }
-        .received { align-self: flex-start; background: #e4e6eb; color: black; }
-        #input-area { background: white; padding: 10px; display: flex; gap: 10px; border-top: 1px solid #ddd; }
-        input { flex: 1; padding: 10px; border: 1px solid #ccc; border-radius: 20px; outline: none; }
-        button { background: #0084ff; color: white; border: none; padding: 10px 20px; border-radius: 20px; cursor: pointer; }
+        .sent { align-self: flex-end; background: #9c27b0; color: white; }
+        .received { align-self: flex-start; background: #333; color: white; }
+        #input-area { background: #111; padding: 10px; display: flex; gap: 10px; border-top: 1px solid #333; }
+        input { flex: 1; padding: 10px; border-radius: 20px; border: 1px solid #444; background: #222; color: white; outline: none; }
+        button { background: #9c27b0; color: white; border: none; padding: 10px 20px; border-radius: 20px; cursor: pointer; }
     </style>
 </head>
 <body>
@@ -28,80 +28,63 @@
 </div>
 
 <script>
-    // 1. حط كود الـ Config بتاعك هنا
+    // بيانات المشروع بتاعك (تأكد إنها صح)
     const firebaseConfig = {
-        apiKey: "YOUR_API_KEY",
-        authDomain: "YOUR_PROJECT.firebaseapp.com",
-        projectId: "YOUR_PROJECT_ID",
-        storageBucket: "YOUR_PROJECT.appspot.com",
-        messagingSenderId: "YOUR_SENDER_ID",
-        appId: "YOUR_APP_ID"
+        apiKey: "AlzaSyDacUhyXuuwecM7_WvukjDl3gLlk75zAs",
+        authDomain: "khalil-app-861c8.firebaseapp.com",
+        projectId: "khalil-app-861c8",
+        storageBucket: "khalil-app-861c8.firebasestorage.app",
+        messagingSenderId: "1080158981516",
+        appId: "1:1080158981516:web:93bcd420b79dcd6d151aa7"
     };
 
-    firebase.initializeApp(firebaseConfig);
+    if (!firebase.apps.length) {
+        firebase.initializeApp(firebaseConfig);
+    }
     const db = firebase.firestore();
     const auth = firebase.auth();
 
     const chatContainer = document.getElementById('chat-container');
     const msgInput = document.getElementById('msgInput');
 
-    // 2. دالة عرض الرسايل (بتحدث نفسها تلقائياً)
     function loadMessages() {
-        db.collection("messages")
-          .orderBy("timestamp", "asc") // الترتيب الزمني عشان الرسايل تظهر
-          .onSnapshot((snapshot) => {
-              chatContainer.innerHTML = ""; // تنظيف الشاشة قبل العرض الجديد
-              snapshot.forEach((doc) => {
-                  const data = doc.data();
-                  const msgDiv = document.createElement('div');
-                  msgDiv.classList.add('message');
-                  
-                  // تحديد لو الرسالة مني ولا من حد تاني
-                  if (auth.currentUser && data.senderId === auth.currentUser.uid) {
-                      msgDiv.classList.add('sent');
-                  } else {
-                      msgDiv.classList.add('received');
-                  }
-                  
-                  msgDiv.textContent = data.text;
-                  chatContainer.appendChild(msgDiv);
-              });
-              chatContainer.scrollTop = chatContainer.scrollHeight; // النزول لآخر رسالة
-          }, (error) => {
-              console.error("خطأ في جلب الرسايل: ", error);
-          });
-    }
-
-    // 3. دالة إرسال الرسالة
-    function sendMessage() {
-        const text = msgInput.value.trim();
-        if (text === "") return;
-
-        if (!auth.currentUser) {
-            alert("لازم تسجل دخول الأول!");
-            return;
-        }
-
-        db.collection("messages").add({
-            text: text,
-            senderId: auth.currentUser.uid,
-            timestamp: firebase.firestore.FieldValue.serverTimestamp() // ده اللي بيظبط الترتيب
-        }).then(() => {
-            msgInput.value = ""; // مسح الخانة بعد الإرسال
-        }).catch((error) => {
-            alert("حصل مشكلة وأنت بتبعت: " + error.message);
+        db.collection("messages").orderBy("timestamp", "asc").onSnapshot((snapshot) => {
+            chatContainer.innerHTML = "";
+            snapshot.forEach((doc) => {
+                const data = doc.data();
+                const msgDiv = document.createElement('div');
+                msgDiv.className = "message " + (data.senderId === auth.currentUser.uid ? "sent" : "received");
+                msgDiv.textContent = data.text;
+                chatContainer.appendChild(msgDiv);
+            });
+            chatContainer.scrollTop = chatContainer.scrollHeight;
         });
     }
 
-    // تشغيل جلب الرسايل أول ما الصفحة تفتح
+    function sendMessage() {
+        const text = msgInput.value.trim();
+        if (text !== "" && auth.currentUser) {
+            db.collection("messages").add({
+                text: text,
+                senderId: auth.currentUser.uid,
+                timestamp: firebase.firestore.FieldValue.serverTimestamp()
+            });
+            msgInput.value = "";
+        }
+    }
+
     auth.onAuthStateChanged((user) => {
         if (user) {
             loadMessages();
         } else {
-            // لو مش مسجل دخول يرجعه لصفحة اللوجن
-            window.location.href = "login.html";
+            window.location.href = "login.html"; // لو مش مسجل يرجعه للوجن
         }
     });
+
+    msgInput.addEventListener("keypress", (e) => { if (e.key === "Enter") sendMessage(); });
+</script>
+</body>
+</html>
 
     // الإرسال بـ Enter
     msgInput.addEventListener("keypress", (e) => {
