@@ -49,6 +49,7 @@
             margin-bottom: 12px;
             border: 1px solid rgba(255,255,255,0.05);
             transition: 0.3s;
+            cursor: pointer;
         }
         .chat-item:active { transform: scale(0.98); background: rgba(168, 85, 247, 0.1); }
         .chat-img { width: 55px; height: 55px; border-radius: 50%; object-fit: cover; margin-left: 15px; }
@@ -94,6 +95,10 @@
             <i class="fas fa-comment-dots"></i>
             <span>المحادثات</span>
         </button>
+        <button class="nav-btn" onclick="window.location.assign('search.html')">
+            <i class="fas fa-user-plus"></i>
+            <span>إضافة</span>
+        </button>
     </div>
 
     <script type="module">
@@ -102,6 +107,77 @@
         import { getFirestore, doc, getDoc, collection, query, where, onSnapshot } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
         // إعدادات فيربيز الخاصة بك
+        const firebaseConfig = {
+            apiKey: "AIzaSyDacUhyXuuwecM7_WvukjiDl3gLlk75zAs",
+            authDomain: "khalil-app-861c8.firebaseapp.com",
+            projectId: "khalil-app-861c8",
+            storageBucket: "khalil-app-861c8.firebasestorage.app",
+            messagingSenderId: "1080158981516",
+            appId: "1:1080158981516:web:93bcd420b79dcd6d151aa9"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+
+        const chatList = document.getElementById('chatList');
+
+        onAuthStateChanged(auth, async (user) => {
+            if (user) {
+                // 1. عرض بيانات البروفايل الخاص بك
+                const userRef = doc(db, "users", user.uid);
+                const userSnap = await getDoc(userRef);
+                if (userSnap.exists()) {
+                    document.getElementById('userName').innerText = userSnap.data().name;
+                    document.getElementById('userImg').src = userSnap.data().photo;
+                }
+
+                // 2. جلب المحادثات التي تم قبولها
+                const q = query(collection(db, "chats"), 
+                    where("participants", "array-contains", user.uid),
+                    where("status", "==", "accepted")
+                );
+
+                onSnapshot(q, (snapshot) => {
+                    chatList.innerHTML = ""; 
+                    if(snapshot.empty) {
+                        chatList.innerHTML = "<p style='text-align:center; color:#555; margin-top:50px;'>لا توجد محادثات. ابحث عن أصدقاء وابدأ الدردشة!</p>";
+                    }
+
+                    snapshot.forEach(async (chatDoc) => {
+                        const chatData = chatDoc.data();
+                        const otherId = chatData.participants.find(id => id !== user.uid);
+                        
+                        // جلب بيانات الصديق
+                        const otherSnap = await getDoc(doc(db, "users", otherId));
+                        if (otherSnap.exists()) {
+                            const otherData = otherSnap.data();
+                            const item = document.createElement('div');
+                            item.className = 'chat-item';
+                            
+                            // عند الضغط يفتح صفحة الدردشة
+                            item.onclick = () => {
+                                window.location.assign(`chat.html?id=${otherId}`);
+                            };
+
+                            item.innerHTML = `
+                                <img src="${otherData.photo}" class="chat-img">
+                                <div class="chat-info">
+                                    <div class="chat-name">${otherData.name}</div>
+                                    <div class="chat-msg">اضغط لفتح المحادثة...</div>
+                                </div>
+                            `;
+                            chatList.appendChild(item);
+                        }
+                    });
+                });
+            } else {
+                window.location.assign("index.html");
+            }
+        });
+    </script>
+</body>
+</html>
         const firebaseConfig = {
             apiKey: "AIzaSyDacUhyXuuwecM7_WvukjiDl3gLlk75zAs",
             authDomain: "khalil-app-861c8.firebaseapp.com",
