@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>KHALIL | الدردشة</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { 
+            background: #050505; 
+            color: white; 
+            font-family: 'Segoe UI', sans-serif; 
+            padding-bottom: 80px; 
+        }
+
+        /* الهيدر مع أيقونة البحث */
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 20px;
+            position: sticky;
+            top: 0;
+            background: rgba(5, 5, 5, 0.9);
+            backdrop-filter: blur(10px);
+            z-index: 100;
+            border-bottom: 1px solid #1a1a1a;
+        }
+        .logo { color: #a855f7; font-weight: bold; font-size: 24px; letter-spacing: 2px; }
+        .search-top-btn {
+            color: #94a3b8;
+            font-size: 20px;
+            cursor: pointer;
+            transition: 0.3s;
+        }
+        .search-top-btn:active { color: #a855f7; }
+
+        /* منطقة المستخدم */
+        .user-section {
+            display: flex;
+            align-items: center;
+            padding: 20px;
+            gap: 15px;
+        }
+        .profile-circle {
+            width: 65px;
+            height: 65px;
+            border-radius: 50%;
+            border: 2px solid #a855f7;
+            padding: 2px;
+            overflow: hidden;
+        }
+        #homeUserImg {
+            width: 100%;
+            height: 100%;
+            border-radius: 50%;
+            object-fit: cover;
+        }
+        .welcome-msg { font-size: 14px; color: #94a3b8; }
+        #homeUserName { font-weight: bold; color: white; display: block; font-size: 18px; }
+
+        /* حالة الصفحة الفارغة */
+        .main-content {
+            text-align: center;
+            margin-top: 100px;
+            padding: 20px;
+        }
+        .ghost-icon { font-size: 60px; color: #1a1a1a; margin-bottom: 15px; }
+
+        /* شريط التنقل السفلي - الزرارين فقط */
+        .bottom-nav {
+            position: fixed;
+            bottom: 0;
+            width: 100%;
+            background: #0a0a0a;
+            display: flex;
+            justify-content: space-around;
+            align-items: center;
+            padding: 12px 0;
+            border-top: 1px solid #1a1a1a;
+            box-shadow: 0 -5px 20px rgba(0,0,0,0.5);
+        }
+        .nav-item {
+            background: none;
+            border: none;
+            color: #555;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            cursor: pointer;
+            transition: 0.3s;
+            flex: 1;
+        }
+        .nav-item i { font-size: 24px; margin-bottom: 4px; }
+        .nav-item span { font-size: 11px; }
+        .nav-item.active { color: #a855f7; }
+    </style>
+</head>
+<body>
+
+    <header>
+        <i class="fas fa-search search-top-btn" onclick="location.href='search.html'"></i>
+        <div class="logo">KHALIL</div>
+        <div style="width: 20px;"></div> </header>
+
+    <div class="user-section">
+        <div class="profile-circle">
+            <img id="homeUserImg" src="https://via.placeholder.com/150" alt="Me">
+        </div>
+        <div class="user-info">
+            <span class="welcome-msg">مرحباً بك،</span>
+            <span id="homeUserName">...</span>
+        </div>
+    </div>
+
+    <div class="main-content" id="emptyState">
+        <div class="ghost-icon"><i class="fas fa-comment-slash"></i></div>
+        <p style="color: #444;">ابدأ بالبحث عن أصدقاء لبدء المحادثة</p>
+    </div>
+
+    <div class="chats-list" id="chatsList"></div>
+
+    <div class="bottom-nav">
+        <button class="nav-item" onclick="location.href='search.html'">
+            <i class="fas fa-user-friends"></i>
+            <span>طلبات الصداقة</span>
+        </button>
+
+        <button class="nav-item active">
+            <i class="fas fa-comment-dots"></i>
+            <span>المحادثات</span>
+        </button>
+    </div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+        import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+        import { getFirestore, doc, getDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyDacUhyXuuwecM7_WvukjiDl3gLlk75zAs",
+            authDomain: "khalil-app-861c8.firebaseapp.com",
+            projectId: "khalil-app-861c8",
+            storageBucket: "khalil-app-861c8.firebasestorage.app",
+            messagingSenderId: "1080158981516",
+            appId: "1:1080158981516:web:93bcd420b79dcd6d151aa9"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+
+        onAuthStateChanged(auth, async (user) => {
+            if (user) {
+                const userRef = doc(db, "users", user.uid);
+                const userSnap = await getDoc(userRef);
+                if (userSnap.exists()) {
+                    document.getElementById('homeUserName').innerText = userSnap.data().name;
+                    document.getElementById('homeUserImg').src = userSnap.data().photo;
+                }
+            } else {
+                window.location.assign("login.html");
+            }
+        });
+    </script>
+</body>
+</html>

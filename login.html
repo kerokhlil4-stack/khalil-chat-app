@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>KHALIL | دخول آمن</title>
+    <style>
+        body { 
+            background: #050505; 
+            color: white; 
+            display: flex; 
+            flex-direction: column; 
+            align-items: center; 
+            justify-content: center; 
+            height: 100vh; 
+            margin: 0; 
+            font-family: 'Segoe UI', sans-serif; 
+        }
+        .login-card {
+            text-align: center;
+            background: rgba(255, 255, 255, 0.05);
+            padding: 40px;
+            border-radius: 30px;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            width: 85%;
+            max-width: 400px;
+            box-shadow: 0 20px 50px rgba(0,0,0,0.5);
+        }
+        h2 { color: #a855f7; margin-bottom: 10px; }
+        p { color: #94a3b8; margin-bottom: 30px; }
+        .google-btn { 
+            background: white; 
+            color: black; 
+            border: none; 
+            padding: 15px 25px; 
+            border-radius: 50px; 
+            font-weight: bold; 
+            cursor: pointer;
+            display: inline-flex; 
+            align-items: center; 
+            gap: 10px;
+            transition: 0.3s;
+        }
+        .google-btn:active { transform: scale(0.95); }
+        .loader {
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #a855f7;
+            border-radius: 50%;
+            width: 20px;
+            height: 20px;
+            animation: spin 1s linear infinite;
+            display: none;
+            margin-left: 10px;
+        }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+    </style>
+</head>
+<body>
+
+    <div class="login-card">
+        <h2>مرحباً بك مجدداً 🔥</h2>
+        <p id="statusMsg">اختر حسابك للوصول إلى محادثاتك وبياناتك</p>
+        
+        <button class="google-btn" id="loginBtn">
+            <div class="loader" id="btnLoader"></div>
+            <img id="gIcon" src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" width="20">
+            متابعة باستخدام جوجل
+        </button>
+    </div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+        import { getAuth, signInWithPopup, GoogleAuthProvider, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+        import { getFirestore, doc, getDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+
+        // إعدادات Firebase الخاصة بمشروعك
+        const firebaseConfig = {
+            apiKey: "AIzaSyDacUhyXuuwecM7_WvukjiDl3gLlk75zAs",
+            authDomain: "khalil-app-861c8.firebaseapp.com",
+            projectId: "khalil-app-861c8",
+            storageBucket: "khalil-app-861c8.firebasestorage.app",
+            messagingSenderId: "1080158981516",
+            appId: "1:1080158981516:web:93bcd420b79dcd6d151aa9"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+        const provider = new GoogleAuthProvider();
+
+        const loginBtn = document.getElementById('loginBtn');
+        const statusMsg = document.getElementById('statusMsg');
+        const btnLoader = document.getElementById('btnLoader');
+        const gIcon = document.getElementById('gIcon');
+
+        // وظيفة ذكية للفحص: هل المستخدم قديم أم جديد؟
+        async function handleUserRouting(user) {
+            try {
+                const userDoc = await getDoc(doc(db, "users", user.uid));
+                
+                if (userDoc.exists() && userDoc.data().profileCompleted === true) {
+                    // مستخدم قديم وبياناته جاهزة -> اذهب للرئيسية فوراً
+                    statusMsg.innerText = "أهلاً بك مجدداً.. جاري فتح الصفحة الرئيسية";
+                    window.location.assign("home.html");
+                } else {
+                    // مستخدم جديد أو لم يكمل بياناته -> اذهب لصفحة الملف الشخصي
+                    statusMsg.innerText = "جاري تحويلك لإكمال بياناتك...";
+                    window.location.assign("profile.html");
+                }
+            } catch (error) {
+                console.error("Routing Error:", error);
+                window.location.assign("profile.html"); // احتياطاً لو حصل خطأ في الفحص
+            }
+        }
+
+        // مراقبة حالة المستخدم (لو مسجل بالفعل)
+        onAuthStateChanged(auth, (user) => {
+            if (user) {
+                btnLoader.style.display = "block";
+                gIcon.style.display = "none";
+                handleUserRouting(user);
+            }
+        });
+
+        // زر تسجيل الدخول
+        loginBtn.addEventListener('click', async () => {
+            btnLoader.style.display = "block";
+            gIcon.style.display = "none";
+            statusMsg.innerText = "جاري الاتصال بجوجل...";
+
+            try {
+                const result = await signInWithPopup(auth, provider);
+                handleUserRouting(result.user);
+            } catch (error) {
+                btnLoader.style.display = "none";
+                gIcon.style.display = "block";
+                statusMsg.innerText = "فشل تسجيل الدخول";
+                alert("حدث خطأ: " + error.message);
+            }
+        });
+    </script>
+</body>
+</html>

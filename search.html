@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>KHALIL | طلبات الصداقة والبحث</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        body { background: #050505; color: white; font-family: 'Segoe UI', sans-serif; margin: 0; padding: 20px; }
+        header { display: flex; align-items: center; gap: 15px; margin-bottom: 25px; }
+        .back-btn { color: white; font-size: 20px; cursor: pointer; }
+        
+        .section-title { color: #a855f7; margin: 20px 0 10px; font-size: 18px; font-weight: bold; }
+        
+        .search-box { 
+            background: #111; border: 1px solid #333; border-radius: 15px; 
+            padding: 12px; width: 100%; color: white; outline: none; margin-bottom: 20px;
+        }
+
+        .user-card {
+            background: rgba(255,255,255,0.05); padding: 12px; border-radius: 18px;
+            display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px;
+            border: 1px solid #1a1a1a;
+        }
+        .user-info { display: flex; align-items: center; gap: 12px; }
+        .user-img { width: 50px; height: 50px; border-radius: 50%; object-fit: cover; border: 2px solid #a855f7; }
+        
+        .actions { display: flex; gap: 10px; }
+        .btn { border: none; padding: 10px 15px; border-radius: 12px; font-weight: bold; cursor: pointer; transition: 0.3s; }
+        .accept-btn { background: #a855f7; color: white; }
+        .reject-btn { background: #222; color: #ff4d4d; border: 1px solid #333; }
+        .add-btn { background: #6366f1; color: white; }
+        
+        .status-text { color: #555; text-align: center; margin-top: 20px; font-size: 14px; }
+    </style>
+</head>
+<body>
+
+    <header>
+        <i class="fas fa-arrow-right back-btn" onclick="location.href='home.html'"></i>
+        <h2>طلبات الصداقة</h2>
+    </header>
+
+    <div class="section-title">طلبات في انتظارك</div>
+    <div id="requestsList">
+        <p class="status-text">جاري البحث عن طلبات...</p>
+    </div>
+
+    <hr style="border: 0; border-top: 1px solid #1a1a1a; margin: 30px 0;">
+
+    <div class="section-title">إضافة أصدقاء جدد</div>
+    <input type="text" id="searchInput" class="search-box" placeholder="ابحث بالاسم هنا...">
+    <div id="searchResults"></div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+        import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+        import { getFirestore, collection, query, where, onSnapshot, doc, getDoc, updateDoc, deleteDoc, setDoc, getDocs } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyDacUhyXuuwecM7_WvukjiDl3gLlk75zAs",
+            authDomain: "khalil-app-861c8.firebaseapp.com",
+            projectId: "khalil-app-861c8",
+            storageBucket: "khalil-app-861c8.firebasestorage.app",
+            messagingSenderId: "1080158981516",
+            appId: "1:1080158981516:web:93bcd420b79dcd6d151aa9"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+
+        let myUid = "";
+
+        onAuthStateChanged(auth, (user) => {
+            if (user) {
+                myUid = user.uid;
+                listenToRequests();
+            } else {
+                window.location.assign("login.html");
+            }
+        });
+
+        // وظيفة جلب الطلبات اللي مبعوتالي أنا بس
+        function listenToRequests() {
+            const q = query(
+                collection(db, "chats"), 
+                where("participants", "array-contains", myUid), 
+                where("status", "==", "pending")
+            );
+
+            onSnapshot(q, (snapshot) => {
+                const list = document.getElementById('requestsList');
+                list.innerHTML = "";
+
+                if (snapshot.empty) {
+                    list.innerHTML = '<p class="status-text">لا توجد طلبات صداقة حالياً</p>';
+                    return;
+                }
+
+                snapshot.forEach(async (chatDoc) => {
+                    const data = chatDoc.data();
+                    
+                    // تأكد إن أنا مش اللي باعت الطلب (أنا اللي مستقبله)
+                    if (data.senderId !== myUid) {
+                        const senderId = data.participants.find(id => id !== myUid);
+                        const senderSnap = await getDoc(doc(db, "users", senderId));
+                        
+                        if (senderSnap.exists()) {
+                            renderRequestCard(chatDoc.id, senderSnap.data());
+                        }
+                    }
+                });
+            });
+        }
+
+        function renderRequestCard(chatId, sender) {
+            const div = document.createElement('div');
+            div.className = 'user-card';
+            div.innerHTML = `
+                <div class="user-info">
+                    <img src="${sender.photo}" class="user-img">
+                    <span>${sender.name}</span>
+                </div>
+                <div class="actions">
+                    <button class="btn accept-btn" id="acc-${chatId}">قبول</button>
+                    <button class="btn reject-btn" id="rej-${chatId}">رفض</button>
+                </div>
+            `;
+            document.getElementById('requestsList').appendChild(div);
+
+            // زر القبول
+            document.getElementById(`acc-${chatId}`).onclick = async () => {
+                await updateDoc(doc(db, "chats", chatId), { status: "accepted" });
+                alert("تمت الإضافة بنجاح!");
+            };
+
+            // زر الرفض
+            document.getElementById(`rej-${chatId}`).onclick = async () => {
+                await deleteDoc(doc(db, "chats", chatId));
+                alert("تم رفض الطلب");
+            };
+        }
+
+        // وظيفة البحث (زي ما هي)
+        document.getElementById('searchInput').addEventListener('input', async (e) => {
+            const text = e.target.value.trim();
+            if (text.length < 2) return;
+
+            const q = query(collection(db, "users"), where("name", ">=", text), where("name", "<=", text + "\uf8ff"));
+            const snap = await getDocs(q);
+            const results = document.getElementById('searchResults');
+            results.innerHTML = "";
+
+            snap.forEach(uDoc => {
+                if (uDoc.id !== myUid) {
+                    const uData = uDoc.data();
+                    const card = document.createElement('div');
+                    card.className = 'user-card';
+                    card.innerHTML = `
+                        <div class="user-info">
+                            <img src="${uData.photo}" class="user-img">
+                            <span>${uData.name}</span>
+                        </div>
+                        <button class="btn add-btn" id="send-${uDoc.id}">إضافة</button>
+                    `;
+                    results.appendChild(card);
+
+                    document.getElementById(`send-${uDoc.id}`).onclick = async () => {
+                        const chatId = myUid < uDoc.id ? `${myUid}_${uDoc.id}` : `${uDoc.id}_${myUid}`;
+                        await setDoc(doc(db, "chats", chatId), {
+                            participants: [myUid, uDoc.id],
+                            status: "pending",
+                            senderId: myUid
+                        });
+                        alert("تم إرسال الطلب!");
+                    };
+                }
+            });
+        });
+    </script>
+</body>
+</html>
