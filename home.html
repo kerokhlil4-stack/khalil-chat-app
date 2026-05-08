@@ -1,104 +1,104 @@
 <!DOCTYPE html>
-<html lang="ar">
+<html lang="ar" dir="rtl">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Home - Khalil App</title>
+    <title>الرئيسية - Khalil App</title>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
     <style>
-        body { font-family: Arial, sans-serif; background: #000; color: #fff; text-align: center; padding: 50px; }
-        .btn { background: #9c27b0; color: white; padding: 15px 30px; text-decoration: none; border-radius: 25px; font-size: 20px; display: inline-block; margin-top: 20px; }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #0f0c29, #302b63, #24243e);
+            color: white;
+            margin: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            overflow: hidden;
+        }
+        .container {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 30px;
+            border-radius: 20px;
+            backdrop-filter: blur(10px);
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+            text-align: center;
+            width: 80%;
+            max-width: 400px;
+        }
+        h1 { margin-bottom: 10px; font-size: 24px; }
+        p { color: #ccc; margin-bottom: 30px; }
+        .btn-group { display: flex; flex-direction: column; gap: 15px; }
+        .btn {
+            padding: 12px 25px;
+            border-radius: 50px;
+            text-decoration: none;
+            font-weight: bold;
+            transition: 0.3s;
+            cursor: pointer;
+            border: none;
+        }
+        .btn-chat { background: #9c27b0; color: white; }
+        .btn-chat:hover { background: #7b1fa2; transform: scale(1.05); }
+        .btn-logout { background: transparent; color: #ff5252; border: 1px solid #ff5252; }
+        .btn-logout:hover { background: #ff5252; color: white; }
     </style>
 </head>
 <body>
-    <h1>أهلاً بك في تطبيق خليل</h1>
-    <p>اضغط تحت عشان تدخل الشات</p>
-    <a href="chat.html" class="btn">دخول الدردشة</a>
-</body>
-</html>
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-        import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
-        import { getFirestore, doc, getDoc, collection, query, where, onSnapshot } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
-        // إعدادات فيربيز الخاصة بك
-        const firebaseConfig = {
-            apiKey: "AIzaSyDacUhyXuuwecM7_WvukjiDl3gLlk75zAs",
-            authDomain: "khalil-app-861c8.firebaseapp.com",
-            projectId: "khalil-app-861c8",
-            storageBucket: "khalil-app-861c8.firebasestorage.app",
-            messagingSenderId: "1080158981516",
-            appId: "1:1080158981516:web:93bcd420b79dcd6d151aa9"
-        };
+    <div class="container">
+        <h1>أهلاً بك في Khalil App</h1>
+        <p id="user-email">جاري التحميل...</p>
 
-        const app = initializeApp(firebaseConfig);
-        const auth = getAuth(app);
-        const db = getFirestore(app);
+        <div class="btn-group">
+            <a href="chat.html" class="btn btn-chat">دخول غرفة الدردشة</a>
+            <button onclick="logout()" class="btn btn-logout">تسجيل الخروج</button>
+        </div>
+    </div>
 
-        const chatList = document.getElementById('chatList');
+<script>
+    // بيانات المشروع بتاعك
+    const firebaseConfig = {
+        apiKey: "AlzaSyDacUhyXuuwecM7_WvukjDl3gLlk75zAs",
+        authDomain: "khalil-app-861c8.firebaseapp.com",
+        projectId: "khalil-app-861c8",
+        storageBucket: "khalil-app-861c8.firebasestorage.app",
+        messagingSenderId: "1080158981516",
+        appId: "1:1080158981516:web:93bcd420b79dcd6d151aa7"
+    };
 
-        onAuthStateChanged(auth, async (user) => {
-            if (user) {
-                // 1. عرض بيانات البروفايل الخاص بك
-                const userRef = doc(db, "users", user.uid);
-                const userSnap = await getDoc(userRef);
-                if (userSnap.exists()) {
-                    document.getElementById('userName').innerText = userSnap.data().name;
-                    document.getElementById('userImg').src = userSnap.data().photo;
-                }
+    // تشغيل فايربيز
+    if (!firebase.apps.length) {
+        firebase.initializeApp(firebaseConfig);
+    }
 
-                // 2. جلب المحادثات التي تم قبولها
-                const q = query(collection(db, "chats"), 
-                    where("participants", "array-contains", user.uid),
-                    where("status", "==", "accepted")
-                );
+    const auth = firebase.auth();
 
-                onSnapshot(q, (snapshot) => {
-                    chatList.innerHTML = ""; 
-                    if(snapshot.empty) {
-                        chatList.innerHTML = "<p style='text-align:center; color:#555; margin-top:50px;'>لا توجد محادثات. ابحث عن أصدقاء وابدأ الدردشة!</p>";
-                    }
+    // التأكد من أن المستخدم مسجل دخول
+    auth.onAuthStateChanged((user) => {
+        if (user) {
+            document.getElementById('user-email').textContent = "مرحباً: " + user.email;
+        } else {
+            // لو مش مسجل يرجعه لصفحة اللوجن فوراً
+            window.location.href = "login.html";
+        }
+    });
 
-                    snapshot.forEach(async (chatDoc) => {
-                        const chatData = chatDoc.data();
-                        const otherId = chatData.participants.find(id => id !== user.uid);
-                        
-                        // جلب بيانات الصديق
-                        const otherSnap = await getDoc(doc(db, "users", otherId));
-                        if (otherSnap.exists()) {
-                            const otherData = otherSnap.data();
-                            const item = document.createElement('div');
-                            item.className = 'chat-item';
-                            
-                            // عند الضغط يفتح صفحة الدردشة
-                            item.onclick = () => {
-                                window.location.assign(`chat.html?id=${otherId}`);
-                            };
-
-                            item.innerHTML = `
-                                <img src="${otherData.photo}" class="chat-img">
-                                <div class="chat-info">
-                                    <div class="chat-name">${otherData.name}</div>
-                                    <div class="chat-msg">اضغط لفتح المحادثة...</div>
-                                </div>
-                            `;
-                            chatList.appendChild(item);
-                        }
-                    });
-                });
-            } else {
-                window.location.assign("index.html");
-            }
+    // دالة تسجيل الخروج
+    function logout() {
+        auth.signOut().then(() => {
+            window.location.href = "login.html";
+        }).catch((error) => {
+            alert("حدث خطأ أثناء تسجيل الخروج");
         });
-    </script>
+    }
+</script>
+
 </body>
 </html>
-        const firebaseConfig = {
-            apiKey: "AIzaSyDacUhyXuuwecM7_WvukjiDl3gLlk75zAs",
-            authDomain: "khalil-app-861c8.firebaseapp.com",
-            projectId: "khalil-app-861c8",
-            storageBucket: "khalil-app-861c8.firebasestorage.app",
-            messagingSenderId: "1080158981516",
-            appId: "1:1080158981516:web:93bcd420b79dcd6d151aa9"
-        };
 
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
