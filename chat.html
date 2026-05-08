@@ -9,13 +9,13 @@
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
     <style>
         body { font-family: sans-serif; background: #000; margin: 0; display: flex; flex-direction: column; height: 100vh; color: white; }
-        #chat-container { flex: 1; overflow-y: auto; padding: 20px; display: flex; flex-direction: column; gap: 10px; }
-        .message { padding: 10px 15px; border-radius: 18px; max-width: 70%; word-wrap: break-word; }
+        #chat-container { flex: 1; overflow-y: auto; padding: 20px; display: flex; flex-direction: column; gap: 10px; padding-bottom: 80px; }
+        .message { padding: 10px 15px; border-radius: 18px; max-width: 70%; word-wrap: break-word; font-size: 16px; }
         .sent { align-self: flex-end; background: #9c27b0; color: white; }
         .received { align-self: flex-start; background: #333; color: white; }
-        #input-area { background: #111; padding: 10px; display: flex; gap: 10px; border-top: 1px solid #333; }
-        input { flex: 1; padding: 10px; border-radius: 20px; border: 1px solid #444; background: #222; color: white; outline: none; }
-        button { background: #9c27b0; color: white; border: none; padding: 10px 20px; border-radius: 20px; cursor: pointer; }
+        #input-area { position: fixed; bottom: 0; width: 100%; background: #111; padding: 10px; display: flex; gap: 10px; box-sizing: border-box; }
+        input { flex: 1; padding: 12px; border-radius: 25px; border: 1px solid #444; background: #222; color: white; outline: none; }
+        button { background: #9c27b0; color: white; border: none; padding: 10px 20px; border-radius: 25px; cursor: pointer; font-weight: bold; }
     </style>
 </head>
 <body>
@@ -23,12 +23,11 @@
 <div id="chat-container"></div>
 
 <div id="input-area">
-    <input type="text" id="msgInput" placeholder="اكتب رسالة...">
+    <input type="text" id="msgInput" placeholder="اكتب رسالة..." autocomplete="off">
     <button onclick="sendMessage()">إرسال</button>
 </div>
 
 <script>
-    // بيانات المشروع بتاعك (تأكد إنها صح)
     const firebaseConfig = {
         apiKey: "AlzaSyDacUhyXuuwecM7_WvukjDl3gLlk75zAs",
         authDomain: "khalil-app-861c8.firebaseapp.com",
@@ -38,9 +37,7 @@
         appId: "1:1080158981516:web:93bcd420b79dcd6d151aa7"
     };
 
-    if (!firebase.apps.length) {
-        firebase.initializeApp(firebaseConfig);
-    }
+    if (!firebase.apps.length) { firebase.initializeApp(firebaseConfig); }
     const db = firebase.firestore();
     const auth = firebase.auth();
 
@@ -74,34 +71,14 @@
     }
 
     auth.onAuthStateChanged((user) => {
-        if (user) {
-            loadMessages();
-        } else {
-            window.location.href = "login.html"; // لو مش مسجل يرجعه للوجن
-        }
+        if (user) { loadMessages(); } 
+        else { window.location.href = "login.html"; }
     });
 
     msgInput.addEventListener("keypress", (e) => { if (e.key === "Enter") sendMessage(); });
 </script>
 </body>
 </html>
-
-    // الإرسال بـ Enter
-    msgInput.addEventListener("keypress", (e) => {
-        if (e.key === "Enter") sendMessage();
-    });
-</script>
-
-</body>
-</html>
-            if (user && receiverId) {
-                const receiverSnap = await getDoc(doc(db, "users", receiverId));
-                if (receiverSnap.exists()) {
-                    document.getElementById('receiverName').innerText = receiverSnap.data().name;
-                    document.getElementById('receiverImg').src = receiverSnap.data().photo;
-                }
-
-                const chatId = user.uid < receiverId ? `${user.uid}_${receiverId}` : `${receiverId}_${user.uid}`;
 
                 // استلام الرسائل (نصوص وصوت)
                 const q = query(collection(db, "messages"), where("chatId", "==", chatId), orderBy("timestamp", "asc"));
