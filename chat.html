@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>KHALIL | المحادثة المطورة</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { background: #050505; color: white; font-family: 'Segoe UI', sans-serif; height: 100vh; display: flex; flex-direction: column; }
+
+        header {
+            display: flex; align-items: center; padding: 15px;
+            background: rgba(10, 10, 10, 0.9); border-bottom: 1px solid #1a1a1a;
+        }
+        .back-btn { font-size: 20px; color: #94a3b8; cursor: pointer; margin-left: 15px; }
+        .receiver-info { display: flex; align-items: center; gap: 10px; }
+        .receiver-img { width: 40px; height: 40px; border-radius: 50%; border: 1px solid #a855f7; object-fit: cover; }
+        .receiver-name { font-weight: bold; font-size: 16px; }
+
+        #messagesContainer {
+            flex: 1; overflow-y: auto; padding: 20px;
+            display: flex; flex-direction: column; gap: 12px;
+            background: #050505;
+        }
+        .msg { max-width: 80%; padding: 12px; border-radius: 18px; font-size: 15px; position: relative; }
+        .msg.sent { align-self: flex-start; background: #a855f7; border-bottom-right-radius: 2px; }
+        .msg.received { align-self: flex-end; background: #1a1a1a; border-bottom-left-radius: 2px; border: 1px solid #333; }
+        
+        audio { max-width: 100%; height: 35px; filter: hue-rotate(240deg); }
+
+        .input-area {
+            padding: 15px; background: #0a0a0a; border-top: 1px solid #1a1a1a;
+            display: flex; align-items: center; gap: 8px;
+        }
+        #messageInput {
+            flex: 1; background: #111; border: 1px solid #333; color: white;
+            padding: 12px; border-radius: 25px; outline: none;
+        }
+        .action-btn {
+            background: #1a1a1a; color: white; border: none;
+            width: 45px; height: 45px; border-radius: 50%;
+            cursor: pointer; display: flex; align-items: center; justify-content: center;
+            transition: 0.3s; font-size: 18px;
+        }
+        #sendBtn { background: #a855f7; }
+        .recording { background: #ef4444 !important; animation: pulse 1s infinite; }
+        
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+            100% { transform: scale(1); }
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <i class="fas fa-arrow-right back-btn" onclick="window.location.assign('home.html')"></i>
+        <div class="receiver-info">
+            <img id="receiverImg" src="" class="receiver-img">
+            <span id="receiverName" class="receiver-name">تحميل...</span>
+        </div>
+    </header>
+
+    <div id="messagesContainer"></div>
+
+    <div class="input-area">
+        <button id="recordBtn" class="action-btn"><i class="fas fa-microphone"></i></button>
+        <input type="text" id="messageInput" placeholder="اكتب رسالة...">
+        <button id="sendBtn" class="action-btn"><i class="fas fa-paper-plane"></i></button>
+    </div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+        import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+        import { getFirestore, doc, getDoc, collection, addDoc, query, where, orderBy, onSnapshot, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+        import { getStorage, ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-storage.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyDacUhyXuuwecM7_WvukjiDl3gLlk75zAs",
+            authDomain: "khalil-app-861c8.firebaseapp.com",
+            projectId: "khalil-app-861c8",
+            storageBucket: "khalil-app-861c8.firebasestorage.app",
+            messagingSenderId: "1080158981516",
+            appId: "1:1080158981516:web:93bcd420b79dcd6d151aa9"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+        const storage = getStorage(app);
+
+        const urlParams = new URLSearchParams(window.location.search);
+        const receiverId = urlParams.get('id');
+        const msgContainer = document.getElementById('messagesContainer');
+        const msgInput = document.getElementById('messageInput');
+        const sendBtn = document.getElementById('sendBtn');
+        const recordBtn = document.getElementById('recordBtn');
+
+        let mediaRecorder;
+        let audioChunks = [];
+
+        onAuthStateChanged(auth, async (user) => {
+            if (user && receiverId) {
+                const receiverSnap = await getDoc(doc(db, "users", receiverId));
+                if (receiverSnap.exists()) {
+                    document.getElementById('receiverName').innerText = receiverSnap.data().name;
+                    document.getElementById('receiverImg').src = receiverSnap.data().photo;
+                }
+
+                const chatId = user.uid < receiverId ? `${user.uid}_${receiverId}` : `${receiverId}_${user.uid}`;
+
+                // استلام الرسائل (نصوص وصوت)
+                const q = query(collection(db, "messages"), where("chatId", "==", chatId), orderBy("timestamp", "asc"));
+                onSnapshot(q, (snapshot) => {
+                    msgContainer.innerHTML = "";
+                    snapshot.forEach(doc => {
+                        const data = doc.data();
+                        const msgDiv = document.createElement('div');
+                        msgDiv.className = `msg ${data.senderId === user.uid ? 'sent' : 'received'}`;
+                        
+                        if (data.type === "audio") {
+                            msgDiv.innerHTML = `<audio src="${data.audioUrl}" controls></audio>`;
+                        } else {
+                            msgDiv.innerText = data.text;
+                        }
+                        msgContainer.appendChild(msgDiv);
+                    });
+                    msgContainer.scrollTop = msgContainer.scrollHeight;
+                });
+
+                // إرسال نص
+                sendBtn.onclick = async () => {
+                    const text = msgInput.value.trim();
+                    if (text) {
+                        await addDoc(collection(db, "messages"), {
+                            chatId, senderId: user.uid, receiverId, text, type: "text", timestamp: serverTimestamp()
+                        });
+                        msgInput.value = "";
+                    }
+                };
+
+                // تسجيل وإرسال صوت
+                recordBtn.onclick = async () => {
+                    if (!mediaRecorder || mediaRecorder.state === "inactive") {
+                        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                        mediaRecorder = new MediaRecorder(stream);
+                        mediaRecorder.start();
+                        audioChunks = [];
+                        recordBtn.classList.add('recording');
+                        
+                        mediaRecorder.ondataavailable = e => audioChunks.push(e.data);
+                        mediaRecorder.onstop = async () => {
+                            const audioBlob = new Blob(audioChunks, { type: 'audio/mp3' });
+                            const audioName = `audio_${Date.now()}.mp3`;
+                            const storageRef = ref(storage, `chats/${chatId}/${audioName}`);
+                            
+                            // رفع الملف لـ Firebase Storage
+                            await uploadBytes(storageRef, audioBlob);
+                            const url = await getDownloadURL(storageRef);
+                            
+                            // حفظ لينك الريكورد في الشات
+                            await addDoc(collection(db, "messages"), {
+                                chatId, senderId: user.uid, receiverId, audioUrl: url, type: "audio", timestamp: serverTimestamp()
+                            });
+                            recordBtn.classList.remove('recording');
+                        };
+                    } else {
+                        mediaRecorder.stop();
+                    }
+                };
+            }
+        });
+    </script>
+</body>
+</html>
