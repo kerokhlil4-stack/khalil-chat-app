@@ -6,7 +6,7 @@
     <title>KHALIL | طلبات الصداقة والبحث</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
-        body { background: #050505; color: white; font-family: 'Segoe UI', sans-serif; margin: 0; padding: 20px; }
+        body { background: #050505; color: white; font-family: 'Segoe UI', sans-serif; margin: 0; padding: 20px; padding-bottom: 80px; }
         header { display: flex; align-items: center; gap: 15px; margin-bottom: 25px; }
         .back-btn { color: white; font-size: 20px; cursor: pointer; }
         
@@ -30,8 +30,10 @@
         .accept-btn { background: #a855f7; color: white; }
         .reject-btn { background: #222; color: #ff4d4d; border: 1px solid #333; }
         .add-btn { background: #6366f1; color: white; }
+        .sent-btn { background: #333; color: #888; cursor: not-allowed; }
         
         .status-text { color: #555; text-align: center; margin-top: 20px; font-size: 14px; }
+        .loading-spinner { text-align: center; margin: 20px; }
     </style>
 </head>
 <body>
@@ -55,7 +57,7 @@
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
         import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
-        import { getFirestore, collection, query, where, onSnapshot, doc, getDoc, updateDoc, deleteDoc, setDoc, getDocs } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+        import { getFirestore, collection, query, where, onSnapshot, doc, getDoc, updateDoc, deleteDoc, setDoc, getDocs, limit } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
         const firebaseConfig = {
             apiKey: "AIzaSyDacUhyXuuwecM7_WvukjiDl3gLlk75zAs",
@@ -71,6 +73,7 @@
         const db = getFirestore(app);
 
         let myUid = "";
+        let searchTimeout;
 
         onAuthStateChanged(auth, (user) => {
             if (user) {
@@ -81,7 +84,6 @@
             }
         });
 
-        // وظيفة جلب الطلبات اللي مبعوتالي أنا بس
         function listenToRequests() {
             const q = query(
                 collection(db, "chats"), 
@@ -89,7 +91,7 @@
                 where("status", "==", "pending")
             );
 
-            onSnapshot(q, (snapshot) => {
+            onSnapshot(q, async (snapshot) => {
                 const list = document.getElementById('requestsList');
                 list.innerHTML = "";
 
@@ -98,11 +100,131 @@
                     return;
                 }
 
-                snapshot.forEach(async (chatDoc) => {
+                for (const chatDoc of snapshot.docs) {
                     const data = chatDoc.data();
                     
-                    // تأكد إن أنا مش اللي باعت الطلب (أنا اللي مستقبله)
                     if (data.senderId !== myUid) {
+                        const senderId = data.participants.find(id => id !== myUid);
+                        const senderSnap = await getDoc(doc(db, "users", senderId));
+                        
+                        if (senderSnap.exists()) {
+                            renderRequestCard(chatDoc.id, senderSnap.data());
+                        }
+                    }
+                }
+            });
+        }
+
+        function renderRequestCard(chatId, sender) {
+            const div = document.createElement('div');
+            div.className = 'user-card';
+            div.innerHTML = `
+                <div class="user-info">
+                    <img src="${sender.photo}" class="user-img" onerror="this.src='https://via.placeholder.com/150'">
+                    <span>${sender.name}</span>
+                </div>
+                <div class="actions">
+                    <button class="btn accept-btn" data-chatid="${chatId}">قبول</button>
+                    <button class="btn reject-btn" data-chatid="${chatId}">رفض</button>
+                </div>
+            `;
+            document.getElementById('requestsList').appendChild(div);
+
+            div.querySelector('.accept-btn').onclick = async () => {
+                await updateDoc(doc(db, "chats", chatId), { status: "accepted" });
+                alert("تمت الإضافة بنجاح! اذهب للمحادثات للدردشة");
+            };
+
+            div.querySelector('.reject-btn').onclick = async () => {
+                await deleteDoc(doc(db, "chats", chatId));
+                alert("تم رفض الطلب");
+            };
+        }
+
+        // وظيفة البحث المحسنة
+        document.getElementById('searchInput').addEventListener('input', async (e) => {
+            clearTimeout(searchTimeout);
+            const text = e.target.value.trim();
+            
+            if (text.length < 2) {
+                document.getElementById('searchResults').innerHTML = '<p class="status-text">اكتب حرفين على الأقل للبحث</p>';
+                return;
+            }
+
+            searchTimeout = setTimeout(async () => {
+                const resultsDiv = document.getElementById('searchResults');
+                resultsDiv.innerHTML = '<div class="loading-spinner">جاري البحث...</div>';
+                
+                try {
+                    // البحث باستخدام lowerName (يجب إنشاؤه عند التسجيل)
+                    const searchTerm = text.toLowerCase();
+                    const q = query(
+                        collection(db, "users"), 
+                        where("lowerName", ">=", searchTerm), 
+                        where("lowerName", "<=", searchTerm + "\uf8ff"),
+                        limit(20)
+                    );
+                    
+                    const querySnapshot = await getDocs(q);
+                    resultsDiv.innerHTML = "";
+                    
+                    if (querySnapshot.empty) {
+                        resultsDiv.innerHTML = '<p class="status-text">لا توجد نتائج للبحث</p>';
+                        return;
+                    }
+
+                    // جلب الطلبات الحالية لتحديد حالة الأزرار
+                    const existingRequests = await getDocs(query(collection(db, "chats"), where("participants", "array-contains", myUid)));
+                    const existingChatIds = new Set();
+                    existingRequests.forEach(doc => {
+                        existingChatIds.add(doc.data().participants.find(id => id !== myUid));
+                    });
+
+                    for (const userDoc of querySnapshot.docs) {
+                        if (userDoc.id !== myUid) {
+                            const userData = userDoc.data();
+                            const isRequestSent = existingChatIds.has(userDoc.id);
+                            
+                            const card = document.createElement('div');
+                            card.className = 'user-card';
+                            card.innerHTML = `
+                                <div class="user-info">
+                                    <img src="${userData.photo}" class="user-img" onerror="this.src='https://via.placeholder.com/150'">
+                                    <span>${userData.name}</span>
+                                </div>
+                                <button class="btn ${isRequestSent ? 'sent-btn' : 'add-btn'}" data-userid="${userDoc.id}" ${isRequestSent ? 'disabled' : ''}>
+                                    ${isRequestSent ? 'تم الإرسال' : 'إضافة'}
+                                </button>
+                            `;
+                            resultsDiv.appendChild(card);
+
+                            if (!isRequestSent) {
+                                card.querySelector('.add-btn').onclick = async () => {
+                                    const chatId = myUid < userDoc.id ? `${myUid}_${userDoc.id}` : `${userDoc.id}_${myUid}`;
+                                    await setDoc(doc(db, "chats", chatId), {
+                                        participants: [myUid, userDoc.id],
+                                        status: "pending",
+                                        senderId: myUid,
+                                        createdAt: new Date()
+                                    });
+                                    alert("تم إرسال طلب الصداقة!");
+                                    card.querySelector('.add-btn').textContent = "تم الإرسال";
+                                    card.querySelector('.add-btn').disabled = true;
+                                    card.querySelector('.add-btn').classList.remove('add-btn');
+                                    card.querySelector('.add-btn').classList.add('sent-btn');
+                                };
+                            }
+                        }
+                    }
+                } catch (error) {
+                    console.error("Search error:", error);
+                    resultsDiv.innerHTML = '<p class="status-text">حدث خطأ في البحث</p>';
+                }
+            }, 500);
+        });
+    </script>
+</body>
+</html>                    if (data.senderId !== myUid) {
                         const senderId = data.participants.find(id => id !== myUid);
                         const senderSnap = await getDoc(doc(db, "users", senderId));
                         
