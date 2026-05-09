@@ -3,112 +3,125 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>الرئيسية - Khalil App</title>
-    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
+    <title>KHALIL | الدردشة</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: linear-gradient(135deg, #0f0c29, #302b63, #24243e);
-            color: white;
-            margin: 0;
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { 
+            background: #050505; 
+            color: white; 
+            font-family: 'Segoe UI', sans-serif; 
+            padding-bottom: 80px; 
+        }
+
+        header {
             display: flex;
-            flex-direction: column;
+            justify-content: space-between;
             align-items: center;
-            justify-content: center;
-            height: 100vh;
-            overflow: hidden;
-        }
-        .container {
-            background: rgba(255, 255, 255, 0.1);
-            padding: 30px;
-            border-radius: 20px;
+            padding: 20px;
+            position: sticky;
+            top: 0;
+            background: rgba(5, 5, 5, 0.9);
             backdrop-filter: blur(10px);
-            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
-            text-align: center;
-            width: 80%;
-            max-width: 400px;
+            z-index: 100;
+            border-bottom: 1px solid #1a1a1a;
         }
-        h1 { margin-bottom: 10px; font-size: 24px; }
-        p { color: #ccc; margin-bottom: 30px; }
-        .btn-group { display: flex; flex-direction: column; gap: 15px; }
-        .btn {
-            padding: 12px 25px;
-            border-radius: 50px;
-            text-decoration: none;
-            font-weight: bold;
+        .logo { color: #a855f7; font-weight: bold; font-size: 24px; letter-spacing: 2px; }
+        .search-top-btn { color: #94a3b8; font-size: 20px; cursor: pointer; }
+
+        .user-bar {
+            display: flex;
+            align-items: center;
+            padding: 15px 20px;
+            background: #0a0a0a;
+            margin-bottom: 10px;
+        }
+        .user-bar img { width: 45px; height: 45px; border-radius: 50%; border: 2px solid #a855f7; object-fit: cover; }
+        .user-bar span { margin-right: 12px; font-weight: 500; font-size: 18px; }
+
+        .chat-list { padding: 10px; }
+        .chat-item {
+            display: flex;
+            align-items: center;
+            padding: 15px;
+            background: rgba(255,255,255,0.03);
+            border-radius: 18px;
+            margin-bottom: 12px;
+            border: 1px solid rgba(255,255,255,0.05);
             transition: 0.3s;
             cursor: pointer;
-            border: none;
         }
-        .btn-chat { background: #9c27b0; color: white; }
-        .btn-chat:hover { background: #7b1fa2; transform: scale(1.05); }
-        .btn-logout { background: transparent; color: #ff5252; border: 1px solid #ff5252; }
-        .btn-logout:hover { background: #ff5252; color: white; }
+        .chat-item:active { transform: scale(0.98); background: rgba(168, 85, 247, 0.1); }
+        .chat-img { width: 55px; height: 55px; border-radius: 50%; object-fit: cover; margin-left: 15px; }
+        .chat-info { flex: 1; }
+        .chat-name { font-weight: bold; margin-bottom: 4px; color: #f1f5f9; }
+        .chat-msg { font-size: 13px; color: #94a3b8; }
+
+        .nav-bar {
+            position: fixed;
+            bottom: 0;
+            width: 100%;
+            background: #0a0a0a;
+            display: flex;
+            justify-content: space-around;
+            padding: 15px 0;
+            border-top: 1px solid #1a1a1a;
+        }
+        .nav-btn { background: none; border: none; color: #94a3b8; display: flex; flex-direction: column; align-items: center; gap: 5px; cursor: pointer; }
+        .nav-btn.active { color: #a855f7; }
+        .nav-btn i { font-size: 20px; }
+        .nav-btn span { font-size: 11px; }
     </style>
 </head>
 <body>
 
-    <div class="container">
-        <h1>أهلاً بك في Khalil App</h1>
-        <p id="user-email">جاري التحميل...</p>
-
-        <div class="btn-group">
-            <a href="chat.html" class="btn btn-chat">دخول غرفة الدردشة</a>
-            <button onclick="logout()" class="btn btn-logout">تسجيل الخروج</button>
+    <header>
+        <div class="logo">KHALIL</div>
+        <div class="search-top-btn" onclick="window.location.assign('search.html')">
+            <i class="fas fa-search"></i>
         </div>
+    </header>
+
+    <div class="user-bar">
+        <img id="userImg" src="https://via.placeholder.com/150" alt="" onerror="this.src='https://via.placeholder.com/150'">
+        <span id="userName">جاري التحميل...</span>
     </div>
 
-<script>
-    // بيانات المشروع بتاعك
-    const firebaseConfig = {
-        apiKey: "AlzaSyDacUhyXuuwecM7_WvukjDl3gLlk75zAs",
-        authDomain: "khalil-app-861c8.firebaseapp.com",
-        projectId: "khalil-app-861c8",
-        storageBucket: "khalil-app-861c8.firebasestorage.app",
-        messagingSenderId: "1080158981516",
-        appId: "1:1080158981516:web:93bcd420b79dcd6d151aa7"
-    };
+    <div class="chat-list" id="chatList">
+        <p style='text-align:center; color:#444; margin-top:20px;'>جاري تحميل المحادثات...</p>
+    </div>
 
-    // تشغيل فايربيز
-    if (!firebase.apps.length) {
-        firebase.initializeApp(firebaseConfig);
-    }
+    <div class="nav-bar">
+        <button class="nav-btn active">
+            <i class="fas fa-comment-dots"></i>
+            <span>المحادثات</span>
+        </button>
+    </div>
 
-    const auth = firebase.auth();
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+        import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+        import { getFirestore, doc, getDoc, collection, query, where, onSnapshot } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
-    // التأكد من أن المستخدم مسجل دخول
-    auth.onAuthStateChanged((user) => {
-        if (user) {
-            document.getElementById('user-email').textContent = "مرحباً: " + user.email;
-        } else {
-            // لو مش مسجل يرجعه لصفحة اللوجن فوراً
-            window.location.href = "login.html";
-        }
-    });
-
-    // دالة تسجيل الخروج
-    function logout() {
-        auth.signOut().then(() => {
-            window.location.href = "login.html";
-        }).catch((error) => {
-            alert("حدث خطأ أثناء تسجيل الخروج");
-        });
-    }
-</script>
-
-</body>
-</html>
+        const firebaseConfig = {
+            apiKey: "AIzaSyDacUhyXuuwecM7_WvukjiDl3gLlk75zAs",
+            authDomain: "khalil-app-861c8.firebaseapp.com",
+            projectId: "khalil-app-861c8",
+            storageBucket: "khalil-app-861c8.firebasestorage.app",
+            messagingSenderId: "1080158981516",
+            appId: "1:1080158981516:web:93bcd420b79dcd6d151aa9"
+        };
 
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
         const db = getFirestore(app);
 
         const chatList = document.getElementById('chatList');
+        let friendsCache = new Map(); // تخزين مؤقت لبيانات الأصدقاء
 
         onAuthStateChanged(auth, async (user) => {
             if (user) {
-                // 1. عرض بياناتك الشخصية
+                // عرض بيانات المستخدم
                 const userRef = doc(db, "users", user.uid);
                 const userSnap = await getDoc(userRef);
                 if (userSnap.exists()) {
@@ -116,39 +129,77 @@
                     document.getElementById('userImg').src = userSnap.data().photo;
                 }
 
-                // 2. البحث عن المحادثات المقبولة في مجموعة chats
-                const q = query(collection(db, "chats"), 
+                // الاستعلام عن المحادثات المقبولة فقط
+                const q = query(
+                    collection(db, "chats"), 
                     where("participants", "array-contains", user.uid),
                     where("status", "==", "accepted")
                 );
 
-                // استماع لحظي لأي تغيير في قائمة الأصدقاء
-                onSnapshot(q, (snapshot) => {
-                    chatList.innerHTML = ""; 
-                    if(snapshot.empty) {
-                        chatList.innerHTML = "<p style='text-align:center; color:#444; margin-top:20px;'>لا توجد محادثات نشطة حالياً</p>";
+                onSnapshot(q, async (snapshot) => {
+                    if (snapshot.empty) {
+                        chatList.innerHTML = "<p style='text-align:center; color:#444; margin-top:20px;'>لا توجد محادثات نشطة حالياً<br>اذهب لإضافة أصدقاء</p>";
+                        return;
                     }
+
+                    // جمع IDs الأصدقاء دفعة واحدة
+                    const friendIds = [];
+                    const chatDataMap = new Map();
                     
-                    snapshot.forEach(async (chatDoc) => {
+                    snapshot.forEach((chatDoc) => {
                         const chatData = chatDoc.data();
                         const otherId = chatData.participants.find(id => id !== user.uid);
-                        
-                        // جلب بيانات الشخص التاني
-                        const otherSnap = await getDoc(doc(db, "users", otherId));
-                        if (otherSnap.exists()) {
-                            const otherData = otherSnap.data();
-                            const item = document.createElement('div');
-                            item.className = 'chat-item';
-                            item.innerHTML = `
-                                <img src="${otherData.photo}" class="chat-img">
-                                <div class="chat-info">
-                                    <div class="chat-name">${otherData.name}</div>
-                                    <div class="chat-msg">اضغط لبدء الدردشة...</div>
-                                </div>
-                            `;
-                            chatList.appendChild(item);
+                        if (otherId) {
+                            friendIds.push(otherId);
+                            chatDataMap.set(otherId, chatDoc.id);
                         }
                     });
+
+                    // جلب بيانات الأصدقاء دفعة واحدة (إذا كان العدد أقل من 10)
+                    // ملاحظة: Firestore لا يدعم "in" لأكثر من 10 عناصر
+                    chatList.innerHTML = '<p style="text-align:center; color:#888;">جاري تحميل المحادثات...</p>';
+                    
+                    const friendsData = [];
+                    for (const friendId of friendIds.slice(0, 10)) {
+                        if (friendsCache.has(friendId)) {
+                            friendsData.push({ id: friendId, data: friendsCache.get(friendId) });
+                        } else {
+                            const friendSnap = await getDoc(doc(db, "users", friendId));
+                            if (friendSnap.exists()) {
+                                const friendData = friendSnap.data();
+                                friendsCache.set(friendId, friendData);
+                                friendsData.push({ id: friendId, data: friendData });
+                            }
+                        }
+                    }
+
+                    // عرض القائمة
+                    chatList.innerHTML = "";
+                    friendsData.forEach(friend => {
+                        const chatId = chatDataMap.get(friend.id);
+                        const item = document.createElement('div');
+                        item.className = 'chat-item';
+                        item.onclick = () => {
+                            window.location.assign(`chat.html?id=${friend.id}`);
+                        };
+                        item.innerHTML = `
+                            <img src="${friend.data.photo}" class="chat-img" onerror="this.src='https://via.placeholder.com/150'">
+                            <div class="chat-info">
+                                <div class="chat-name">${friend.data.name}</div>
+                                <div class="chat-msg">اضغط لبدء الدردشة...</div>
+                            </div>
+                        `;
+                        chatList.appendChild(item);
+                    });
+
+                    if (friendIds.length > 10) {
+                        const more = document.createElement('p');
+                        more.style.textAlign = 'center';
+                        more.style.color = '#666';
+                        more.style.marginTop = '10px';
+                        more.innerText = `+${friendIds.length - 10} محادثة أخرى`;
+                        chatList.appendChild(more);
+                    }
                 });
             } else {
                 window.location.assign("index.html");
