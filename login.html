@@ -41,6 +41,8 @@
             align-items: center; 
             gap: 10px;
             transition: 0.3s;
+            width: 100%;
+            justify-content: center;
         }
         .google-btn:active { transform: scale(0.95); }
         .loader {
@@ -51,7 +53,6 @@
             height: 20px;
             animation: spin 1s linear infinite;
             display: none;
-            margin-left: 10px;
         }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
     </style>
@@ -60,7 +61,7 @@
 
     <div class="login-card">
         <h2>مرحباً بك مجدداً 🔥</h2>
-        <p id="statusMsg">اختر حسابك للوصول إلى محادثاتك وبياناتك</p>
+        <p id="statusMsg">اختر حسابك للوصول إلى محادثاتك</p>
         
         <button class="google-btn" id="loginBtn">
             <div class="loader" id="btnLoader"></div>
@@ -72,9 +73,8 @@
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
         import { getAuth, signInWithPopup, GoogleAuthProvider, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
-        import { getFirestore, doc, getDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+        import { getFirestore, doc, getDoc, setDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
-        // إعدادات Firebase الخاصة بمشروعك
         const firebaseConfig = {
             apiKey: "AIzaSyDacUhyXuuwecM7_WvukjiDl3gLlk75zAs",
             authDomain: "khalil-app-861c8.firebaseapp.com",
@@ -94,15 +94,70 @@
         const btnLoader = document.getElementById('btnLoader');
         const gIcon = document.getElementById('gIcon');
 
-        // وظيفة ذكية للفحص: هل المستخدم قديم أم جديد؟
         async function handleUserRouting(user) {
             try {
                 const userDoc = await getDoc(doc(db, "users", user.uid));
                 
                 if (userDoc.exists() && userDoc.data().profileCompleted === true) {
-                    // مستخدم قديم وبياناته جاهزة -> اذهب للرئيسية فوراً
-                    statusMsg.innerText = "أهلاً بك مجدداً.. جاري فتح الصفحة الرئيسية";
-                    window.location.assign("home.html");
+                    statusMsg.innerText = "أهلاً بك مجدداً.. جاري فتح المحادثات";
+                    setTimeout(() => {
+                        window.location.assign("home.html");
+                    }, 1000);
+                } else {
+                    // إنشاء أو تحديث وثيقة المستخدم
+                    await setDoc(doc(db, "users", user.uid), {
+                        uid: user.uid,
+                        name: user.displayName || "",
+                        photo: user.photoURL || "https://via.placeholder.com/150",
+                        email: user.email,
+                        profileCompleted: false,
+                        lowerName: (user.displayName || "").toLowerCase(),
+                        createdAt: new Date()
+                    }, { merge: true });
+                    
+                    statusMsg.innerText = "جاري تحويلك لإكمال البيانات...";
+                    setTimeout(() => {
+                        window.location.assign("profile.html");
+                    }, 1000);
+                }
+            } catch (error) {
+                console.error("Routing Error:", error);
+                statusMsg.innerText = "حدث خطأ، حاول مرة أخرى";
+                btnLoader.style.display = "none";
+                gIcon.style.display = "block";
+            }
+        }
+
+        onAuthStateChanged(auth, (user) => {
+            if (user) {
+                btnLoader.style.display = "block";
+                gIcon.style.display = "none";
+                handleUserRouting(user);
+            } else {
+                btnLoader.style.display = "none";
+                gIcon.style.display = "block";
+            }
+        });
+
+        loginBtn.addEventListener('click', async () => {
+            btnLoader.style.display = "block";
+            gIcon.style.display = "none";
+            statusMsg.innerText = "جاري الاتصال بجوجل...";
+
+            try {
+                const result = await signInWithPopup(auth, provider);
+                await handleUserRouting(result.user);
+            } catch (error) {
+                console.error(error);
+                btnLoader.style.display = "none";
+                gIcon.style.display = "block";
+                statusMsg.innerText = "فشل تسجيل الدخول";
+                alert("حدث خطأ: " + error.message);
+            }
+        });
+    </script>
+</body>
+</html>                    window.location.assign("home.html");
                 } else {
                     // مستخدم جديد أو لم يكمل بياناته -> اذهب لصفحة الملف الشخصي
                     statusMsg.innerText = "جاري تحويلك لإكمال بياناتك...";
